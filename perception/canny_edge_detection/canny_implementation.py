@@ -3,7 +3,22 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.image as mpimg
  
+"""
+This is a simple implementation of Canny Edge Detection Algorithm using OpenCV and Numpy.
+The algorithm is divided into 5 steps:
 
+    1. Convert the image to grayscale
+    2. Apply Gaussian Blur to reduce noise and detail
+    3. Find the gradient of the image
+    4. Apply non-maximum suppression to thin the edges
+    5. Apply hysteresis thresholding to detect the edges
+
+The homebrew implemetation is then compared to the OpenCV implementation of Canny Edge Detection Algorithm.
+
+Author(s): Michael Bernabei, Ian Mcconachie
+Date: 12-01-2023
+
+"""
 def opencv_implementation_canny_edge_detection(image_path):
     # Read the image
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -138,8 +153,6 @@ def main():
     
     hysteresis_thresholding_img = hysteresis_thresholding_dfs(canny_img, 0.1 * np.max(canny_img), 0.3 * np.max(canny_img))
     
-    
-    #plt.imshow(canny_img, cmap=plt.get_cmap('gray'), vmin=0, vmax=1)
     
     # Display oringal image, blurred image and edge detected image
     plt.subplot(141), plt.imshow(org_img, cmap='gray')
