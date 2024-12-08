@@ -19,8 +19,8 @@
 %   PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
 %----------------------------------------------------------------------------------------
 
-\documentclass[paper=a4, fontsize=11pt]{scrartcl} % A4 paper and 11pt font size
-
+%\documentclass[paper=a4, fontsize=11pt]{scrartcl} % A4 paper and 11pt font size
+\documentclass{article}
 \usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
 \usepackage{palatino} % Use the Adobe Utopia font for the document - comment this line to return to the LaTeX default
 \usepackage[english]{babel} % English language/hyphenation
@@ -30,6 +30,18 @@
 \usepackage{mathrsfs}
 \usepackage{graphicx}
 \usepackage{mathtools}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{color}   %May be necessary if you want to color links
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,     %set to all if you want both sections and subsections linked
+    linkcolor=blue,  %choose some color if you want links to stand out
+}
+
 %
 %
 %
@@ -96,31 +108,99 @@
 \newpage
 
 
+
+
+\tableofcontents
+\listofalgorithms
+
+\newpage
+
 %----------------------------------------------------------------------------------------
 %   PROBLEM SECTION
 %----------------------------------------------------------------------------------------
 %
 
-\textbf{\\ Part I: Perception }
+\section{Problems Attempted}
+\\~\\
+\begin{center}
+ \begin{minipage}{.4\textwidth}
+ \begin{itemize}
+    \item \hyperref[sec:Perception]{Perception - Lidar Occupancy Grid}
+    \item \hyperref[sec:SensorFusion]{Perception - IMU Sensor Fusion}
+    \item \hyperref[sec:CannyEdge]{Perception - Canny Edge Detection }
+    \item \hyperref[sec:RRT]{Path Planning - RRT - 3 points }
+    \item \hyperref[sec:DynAndCtrl]{Dynamics And Control - 5.1 Part A }
+ \end{itemize}
+ \end{minipage}
+\end{center}
+
+
+\newpage
+
+
+\section{Perception}
+
 \begin{framed}
-\textbf{1.1 Lidar Occupancy Grid - 2 points} \\
+\subsection{Lidar Occupancy Grid}
+\label{sec:Perception}
+
+\textbf{ Lidar Occupancy Grid - 2 points} \\
+
+For the lidar occupancy grid problem we elected to use the \textbf{Brensenham Line Algorithm} to rasterize the rays throughout the environment.  We chose this method after Dr. Leo highlighted the benefits of the line algorithm for rasterizing rays.  One particularly amazing feature of the algorithm is the use of only integer arithmetic in the calculation of occupancies.  Using only integer calculations in the occupancies reduces computationally complexity and therefore increases speed. Now since Brensenham's line algorithm is the heart of our work, we will describe the steps in our implemention that lead up to and after the Brensenham portion of our code.
+
+\subsubsection{Lidar Occupancy Algorithm High-level Steps}
+In this section we will highlight the main steps in our algorithm for this part of the project. We will try to stick to plain old english when describing these steps and save coding details for the oral exam portion of this project.
+
+ 
+\begin{algorithm}[H]
+\caption{Lidar Occupancy Grid Algorithm}\label{alg:cap}
+\begin{algorithmic}[1] % Enable number with [1]
+\State Read in lidar, heading, and position data then store in internal data structures
+\State Create Grid based off passed in lidar CSV data 
+\State Start animation loop
+\While {True}
+\State Convert incoming lidar readings and robot position data to grid coordinates
+\State Mark current position of robot on grid 
+\State Rasterize lidar readings using Brensenham's line algorthim and update grid
+\State Rescale grid x,y axis to real world x,y axis
+\State display animation, i.e. show state of lidar scan to user
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+The above algorithm highlights the main steps in the occupancy grid algorithm.  As previously stated, code details will be highlighted upon request at the oral examination.
+
+
 \end{framed}
 
 
-\textbf{\\ Part II: Object-Oriented Programming }
 \begin{framed}
+\subsection{IMU Sensor Fusion}
+\label{sec:SensorFusion}
+\textbf{IMU Sensor Fusion - 1 points} \\
 \end{framed}
 
-\textbf{\\ Part III: Inverse Kinematics }
+
 \begin{framed}
+\subsection{Canny Edge Detection - 1 + 1 Bonus Point}
+\label{sec:CannyEdge}
+\textbf{ Canny Edge Detection - 1 Point + 1 Bonus Point} \\
 \end{framed}
 
-\textbf{\\ Part IV: Path Planning }
+\newpage
+
+\section{Path Planning}
+
 \begin{framed}
+\subsection{ RRT - 3 points}
+\label{sec:RRT}
 \end{framed}
 
-\textbf{\\ Part V: Dynamics and Control }
+\section{Dynamics and Control}
+
 \begin{framed}
+\subsection{ Part A - 2 Points}
+\label{sec:DynAndCtrl}
 \end{framed}
 
 
