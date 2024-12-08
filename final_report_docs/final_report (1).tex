@@ -185,9 +185,35 @@ The above algorithm highlights the main steps in the occupancy grid algorithm.  
 \subsection{Canny Edge Detection - 1 + 1 Bonus Point}
 \label{sec:CannyEdge}
 \textbf{ Canny Edge Detection - 1 Point + 1 Bonus Point} \\
+For Canny edge detection, we implemented each of the steps necessary for the algorithm and then compared our results with those of OpenCV.  We noticed that OpenCV's implementation of the Canny edge detection algorithm was much faster and yielded better results.  We attribute this to years of optimization under the hood and more eye's looking at their Canny edge implementation code.  We noticed that tuning our low and high thresholds in the hystersis step would yield better or worse results depending on how we tuned the thresholds. We feel OpenCV has a clever way to select these values and therefore yeild better results.
+
+\begin{algorithm}[H]
+\caption{Simple Canny Edge Implementation}\label{alg:cap}
+\begin{algorithmic}[1] % Enable number with [1]
+\State Load color image 
+\State Convert loaded image to gray scale image
+\State Apply Gaussian blur to gray scale image to reduce noise
+\State Apply non-maximum suppression to then edges
+\State Perform depth first search hysteresis thresholding
+\end{algorithmic}
+\end{algorithm}
+
+In the image below, we have our implementation of Canny.  Each of the sub-images correspond to the steps in the previously mentioned algorithm. Our implementation does a fairly good job of detecting the lines in the image.   
+
+\begin{center}
+\includegraphics[scale=.25]{ourCanny.png}
+\end{center}
+
+However, in the image below, we see OpenCV's Canny implementation and notice their final image looks better.  Again, we believe this is some optimizations made in their hystersis step.
+
+\begin{center}
+\includegraphics[scale=.25]{thierCanny.png}
+\end{center}
+
+Finally, to ensure we get credit for the bonus point.  It is important to note that we implemented a DFS using a stack and while loop to perform the hystersis step in the Canny edge detection algorithim.
+
 \end{framed}
 
-\newpage
 
 \section{Path Planning}
 
