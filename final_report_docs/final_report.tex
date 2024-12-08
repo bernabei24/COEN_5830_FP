@@ -33,6 +33,7 @@
 \usepackage{multirow}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+ 
 
 \usepackage{color}   %May be necessary if you want to color links
 \usepackage{hyperref}
@@ -129,6 +130,7 @@
     \item \hyperref[sec:SensorFusion]{Perception - IMU Sensor Fusion}
     \item \hyperref[sec:CannyEdge]{Perception - Canny Edge Detection }
     \item \hyperref[sec:RRT]{Path Planning - RRT - 3 points }
+    \item \hyperref[sec:RRT_bonus]{Path Planning - RRT Deploying the solution - 1 bonus points}
     \item \hyperref[sec:DynAndCtrl]{Dynamics And Control - 5.1 Part A }
  \end{itemize}
  \end{minipage}
@@ -185,15 +187,91 @@ The above algorithm highlights the main steps in the occupancy grid algorithm.  
 \subsection{Canny Edge Detection - 1 + 1 Bonus Point}
 \label{sec:CannyEdge}
 \textbf{ Canny Edge Detection - 1 Point + 1 Bonus Point} \\
+For Canny edge detection, we implemented each of the steps necessary for the algorithm and then compared our results with those of OpenCV.  We noticed that OpenCV's implementation of the Canny edge detection algorithm was much faster and yielded better results.  We attribute this to years of optimization under the hood and more eye's looking at their Canny edge implementation code.  We noticed that tuning our low and high thresholds in the hystersis step would yield better or worse results depending on how we tuned the thresholds. We feel OpenCV has a clever way to select these values and therefore yeild better results.
+
+\begin{algorithm}[H]
+\caption{Simple Canny Edge Implementation}\label{alg:cap}
+\begin{algorithmic}[1] % Enable number with [1]
+\State Load color image 
+\State Convert loaded image to gray scale image
+\State Apply Gaussian blur to gray scale image to reduce noise
+\State Apply non-maximum suppression to then edges
+\State Perform depth first search hysteresis thresholding
+\end{algorithmic}
+\end{algorithm}
+
+In the image below, we have our implementation of Canny.  Each of the sub-images correspond to the steps in the previously mentioned algorithm. Our implementation does a fairly good job of detecting the lines in the image.   
+
+\begin{center}
+\includegraphics[scale=.25]{ourCanny.png}
+\end{center}
+
+However, in the image below, we see OpenCV's Canny implementation and notice their final image looks better.  Again, we believe this is some optimizations made in their hystersis step.
+
+\begin{center}
+\includegraphics[scale=.25]{thierCanny.png}
+\end{center}
+
+Finally, to ensure we get credit for the bonus point.  It is important to note that we implemented a DFS using a stack and while loop to perform the hystersis step in the Canny edge detection algorithm.
+
 \end{framed}
 
-\newpage
 
 \section{Path Planning}
 
 \begin{framed}
 \subsection{ RRT - 3 points}
 \label{sec:RRT}
+
+Srikrishna provided the pseudo code for this assignment in the RRT puck and supervisor Python skeleton code.  The only real algorithim we had to implement for this program besides implementing Srikrishna's psuedo code was a communication protocol between the Supervisor and the E-Puck.  
+
+\begin{algorithm}[H]
+\caption{Webots RRT Path Planning }\label{alg:cap}
+\begin{algorithmic}[1] % Enable number with [1]
+\State Start Webots and load RRT Puck and Supervisor files
+\State Webots automatically initializes global variables for RRT Puck and Supervisor
+\While { timestep != 1 }  
+\State Randomly sample map with 50 percent goal biasing 
+\State Search position node tree for closest node CN to randomly sampled node 
+\State teleport robot to node CN 
+\State Inform RRT puck that it should perform 5 Monte Carlo propagations 
+\If{ Five Monte Carlo propagations successful} 
+  \State Add the propagation that is closest to randomly sampled node CN to the tree 
+  \State Set closet propagation node parent to CN 
+\EndIf
+\If{ latest propagation within collision bounds of goal }
+\State stop simulation and reply velocities
+\EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{ Deploying the solution - 1 bonus points}
+\label{sec:RRT_bonus}
+
+For this part of the project we simply added on to the work we did in the previous section by saving the actions.  Actions are data structures that hold the velocities and the duration for which those velocities were executed. After the goal is reached, we simply send these actions to the RRT Puck process and inform the puck to replay the velocities. 
+
+\begin{algorithm}[H]
+\caption{RRT Path Planning Replay Velcities }\label{alg:cap}
+\begin{algorithmic}[1] % Enable number with [1]
+\If{goal reached}
+\State Have Supervisor send saved actions to E-puck
+\EndIf
+\If{actions received by E-puck}
+\State Replay actions on E-puck
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Deploying the Solution Noticed Issues}
+In replaying the actions back to the E-puck we noticed that the longer the simulation ran before finding it's collision threshold, the more off target the E-puck would be when replaying the velocities. To test our theory we lowered our GOAL COLLISION THRESHOLD to .7 and compared the final path of the E-puck with the replayed path.  We did the same for the GOAL COLLISION THRESHOLD to .1.  The results are depicted below.
+
+\begin{center}
+\includegraphics[scale=.25]{deadreckoningError.png}
+\end{center}
+
+In the image above, we see that the shorter the simulation runs the more closely the final path matches the replayed path.  And the longer the simulation runs, the more inaccurate the replayed path is.  We believe this is because when replaying the velocities and durations we are essentially doing DEAD RECKONING.  In other words, we are integrating our velocities and durations in the hope that they lead to our final goal.  However small errors in the replayed durations and velocities accumulate over the course of the simulation and lead to more and more drift from our final goal. 
+
 \end{framed}
 
 \section{Dynamics and Control}
