@@ -5,7 +5,6 @@ from matplotlib.animation import FuncAnimation
  
 
 robot_types = ['QUADCOPTER', 'DIFFERENTIAL_DRIVE', 'HUMANOID']
-
 legal_moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
 class Djikstra:
@@ -131,6 +130,9 @@ class Robot:
     def set_goal(self, x, y):
         self.goal_x = x
         self.goal_y = y
+        
+    def is_at_goal(self):
+        return self.x == self.goal_x and self.y == self.goal_y
     
     def set_position(self, x, y):
         self.x = x
@@ -288,16 +290,18 @@ class Warehouse:
             handles.append(patch)
                 
         plt.legend(handles=handles, bbox_to_anchor=(1.3, .6), loc='right')
-        
-
+        plt.title('Robot Grid Navigation')   
+     
             
         
         plt.show()
     
     def is_position_occupied(self, x, y):
         for robot in self.robots:
-            if robot.x == x and robot.y == y and robot.x != robot.goal_x and robot.y != robot.goal_y and robot.type != 'QUADCOPTER':
-                return True
+            if robot.x == x and robot.y == y  and robot.type != 'QUADCOPTER' :
+                  if robot.is_at_goal():
+                      return False
+                  return True
         return False
         
     def process_move_request(self):
@@ -313,9 +317,15 @@ class Warehouse:
             for other_robot in self.robots:
                 other_move_x, other_move_y = other_robot.get_move_request()
                 if robot != other_robot and move_x == other_move_x and move_y == other_move_y:
-                    # if other robot is closer to its goal, then don't move
+                    # if other robot is closer to its goal don't move it this pass
                     if len(other_robot.get_shortest_path()) > len(robot.get_shortest_path()):
                         request_moves.remove((robot, move_x, move_y))
+                    elif len(other_robot.get_shortest_path()) == len(robot.get_shortest_path()):
+                        # Remove one of the robots based off coin flip  
+                        if np.random.randint(0,1) == 0:
+                          request_moves.remove((other_robot, other_move_x, other_move_y))
+                        else:
+                          request_moves.remove((robot, move_x, move_y))
                     else:
                         request_moves.remove((other_robot, other_move_x, other_move_y))
                 
@@ -332,25 +342,33 @@ class Warehouse:
 warehouse = Warehouse(10, 10)
 
 # create robots
-robot1 = Robot(1, 4, 'QUADCOPTER', warehouse)
+robot1 = Robot(1, 4, 'DIFFERENTIAL_DRIVE', warehouse)
 
-robot2 = Robot(4, 1, 'DIFFERENTIAL_DRIVE', warehouse)
+robot2 = Robot(4, 1, 'QUADCOPTER', warehouse)
 
 robot4 = Robot(3, 1, 'DIFFERENTIAL_DRIVE', warehouse)
 
 robot3 = Robot(1, 3, 'HUMANOID', warehouse)
+
+robot5 = Robot(1, 6, 'HUMANOID', warehouse)
+
+robot6 = Robot(9, 9, 'HUMANOID', warehouse)
 
 # add robots to warehouse
 warehouse.add_robot(robot1)
 warehouse.add_robot(robot2)
 warehouse.add_robot(robot3)
 warehouse.add_robot(robot4)
+warehouse.add_robot(robot5)
+warehouse.add_robot(robot6)
 
 # set goals for robots
 robot1.set_goal(9, 9)
 robot2.set_goal(4, 9)
 robot3.set_goal(9, 5)
 robot4.set_goal(9, 3)
+robot5.set_goal(7, 3)
+robot6.set_goal(1, 1)
 
 # plot warehouse
 #warehouse.plot_warehouse_with_goal_path()
@@ -365,6 +383,8 @@ def animate(i):
     robot2.move_towards_goal()
     robot3.move_towards_goal()
     robot4.move_towards_goal()
+    robot5.move_towards_goal()
+    robot6.move_towards_goal()
     
     warehouse.process_move_request()
     warehouse.plot_warehouse_with_goal_path()
