@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.animation import FuncAnimation
+import time
  
-
 robot_types = ['QUADCOPTER', 'DIFFERENTIAL_DRIVE', 'HUMANOID']
 legal_moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
 
 class Djikstra:
-    def __init__(self, width = 10, height = 10):
+    def __init__(self, width = 5, height = 5):
         self.width = width
         self.height = height
         self.grid = np.zeros((height, width))
@@ -51,13 +51,7 @@ class Djikstra:
         
         # mark obstacles as visited
         obstacles = warehouse.get_obstacles()
-        
-        # mark obstacles as visited
-        for obstacle in obstacles:
-            visited.append(obstacle)
-            min_distance[obstacle] = np.inf
-        
-        
+    
         for x,y in np.ndindex(self.grid.shape):
             unvisited.append((x, y))
             min_distance[(x, y)] = np.inf
@@ -74,18 +68,12 @@ class Djikstra:
             
             neighbors = self.get_neighbors(min_node[0], min_node[1])
             
-            # check if neighbor is an obstacle
-            for obstacle in obstacles:
-                if obstacle in neighbors:
-                    neighbors.remove([4,3])
             
             for neighbor in neighbors:
                 if neighbor in visited:
                     continue
                 
-                if neighbor in obstacles:
-                    print(obstacles)
-                    continue
+              
                 
                 distance = min_distance[min_node] + 1
                 
@@ -100,33 +88,30 @@ class Djikstra:
         
         while (x, y) != (self.start_x, self.start_y):
             neighbors = self.get_neighbors(x, y)
+            
             for neighbor in neighbors:
                 if min_distance[neighbor] == min_distance[(x, y)] - 1:
                     shortest_path.append(neighbor)
                     x = neighbor[0]
                     y = neighbor[1]
+  
+                    
                     break
                 
         return shortest_path
     
         
 class Robot:
-    def __init__(self, x, y, robot_type, warehouse):
+    def __init__(self, x, y, warehouse):
         self.x = x
         self.y = y
-        self.type = robot_type
+        self.robot_type = 'GENERAL'
         self.warehouse = warehouse
         self.move_request_x = 0
         self.move_request_y = 0
+        self.goal_x = -1
+        self.goal_y = -1
         
-        if robot_type == 'QUADCOPTER':
-            self.color = 'red'
-        elif robot_type == 'DIFFERENTIAL_DRIVE':
-            self.color = 'green'
-        elif robot_type == 'HUMANOID':
-            self.color = 'blue'
-        
-    
     def set_goal(self, x, y):
         self.goal_x = x
         self.goal_y = y
@@ -145,7 +130,17 @@ class Robot:
         shortest_path = djikstra.get_shortest_path(self.warehouse)
         return shortest_path
     
-    
+    def move_to_closest_unoccupied_position(self):
+        shortest_path = self.get_shortest_path()
+        
+        if len(shortest_path) == 0:
+            return
+        
+        for move in shortest_path:
+            if not self.warehouse.is_position_occupied(move[0], move[1]):
+                self.x = move[0]
+                self.y = move[1]
+                return
     
     def move_towards_goal(self):
         shortest_path = self.get_shortest_path()
@@ -167,7 +162,24 @@ class Robot:
         return self.move_request_x, self.move_request_y
     
     
-         
+class Quadcopter(Robot):
+    def __init__(self, x, y, warehouse):
+        super().__init__(x, y, warehouse )
+        self.color = 'red'
+        self.robot_type = 'QUADCOPTER'
+        
+class DifferentialDrive(Robot):
+    def __init__(self, x, y, warehouse):
+        super().__init__(x, y, warehouse )
+        self.color = 'green'
+        self.robot_type = 'DIFFERENTIAL_DRIVE'
+        
+class Humanoid(Robot):
+    def __init__(self, x, y, warehouse):
+        super().__init__(x, y, warehouse )
+        self.color = 'blue'
+        self.robot_type = 'HUMANOID'
+        
         
     
         
@@ -182,6 +194,12 @@ class Warehouse:
         self.warehouse.fill(255)
         
         self.robots = []
+        
+    def get_goals(self):
+        goals = []
+        for robot in self.robots:
+            goals.append((robot.goal_x, robot.goal_y))
+        return goals
     
     def add_robot(self, robot):
         self.robots.append(robot)
@@ -197,13 +215,15 @@ class Warehouse:
             return
         
         # check if the new position is occupied by another robot
-        if self.is_position_occupied(x, y) and robot.type != 'QUADCOPTER':
+        if self.is_position_occupied(x, y) and robot.robot_type != 'QUADCOPTER':
+            # move robot to closest unoccupied position
+            robot.move_to_closest_unoccupied_position()
             return
+        
         
         robot.set_position(x, y)
         
-       
-            
+        
     
     def plot_warehouse(self):
         plt.imshow(self.warehouse, cmap='gray', vmin=0, vmax=255)
@@ -229,10 +249,22 @@ class Warehouse:
         
     def get_obstacles(self):
         obstacles = []
-        for x, y in np.ndindex(self.warehouse.shape):
-            if self.warehouse[x, y] == 0:
-                obstacles.append((x, y))
+        
+        #get all robot positions
+        for robot in self.robots:
+            # check if robot is at goal
+            if not robot.is_at_goal():
+              obstacles.append((robot.x, robot.y))
+        
         return obstacles
+    
+    def get_all_robot_positions(self):
+        robot_positions = []
+        
+        for robot in self.robots:
+            robot_positions.append((robot.x, robot.y))
+        
+        return robot_positions
         
         
     def plot_warehouse_with_goal_path(self):
@@ -298,9 +330,9 @@ class Warehouse:
     
     def is_position_occupied(self, x, y):
         for robot in self.robots:
-            if robot.x == x and robot.y == y  and robot.type != 'QUADCOPTER' :
+            if robot.x == x and robot.y == y  and robot.robot_type != 'QUADCOPTER' :
                   if robot.is_at_goal():
-                      return False
+                      return False                 
                   return True
         return False
         
@@ -309,7 +341,7 @@ class Warehouse:
         for robot in self.robots:
             move_x, move_y = robot.get_move_request()
             request_moves.append((robot, move_x, move_y))
-            print(robot.type, move_x, move_y)
+          
             
             
         # check it any moves collide with other robots
@@ -319,15 +351,18 @@ class Warehouse:
                 if robot != other_robot and move_x == other_move_x and move_y == other_move_y:
                     # if other robot is closer to its goal don't move it this pass
                     if len(other_robot.get_shortest_path()) > len(robot.get_shortest_path()):
-                        request_moves.remove((robot, move_x, move_y))
+                        if robot in request_moves:
+                          request_moves.remove((robot, move_x, move_y))
                     elif len(other_robot.get_shortest_path()) == len(robot.get_shortest_path()):
                         # Remove one of the robots based off coin flip  
                         if np.random.randint(0,1) == 0:
-                          request_moves.remove((other_robot, other_move_x, other_move_y))
+                          if other_robot in request_moves:
+                            request_moves.remove((other_robot, other_move_x, other_move_y))
                         else:
-                          request_moves.remove((robot, move_x, move_y))
-                    else:
-                        request_moves.remove((other_robot, other_move_x, other_move_y))
+                          if robot in request_moves:
+                            request_moves.remove((robot, move_x, move_y))
+                           
+               
                 
         # move robots
         for robot, move_x, move_y in request_moves:
@@ -335,68 +370,79 @@ class Warehouse:
             
             
              
-            
+def generate_random_robot(warehouse):
+    x = np.random.randint(0, warehouse.width)
+    y = np.random.randint(0, warehouse.height)
+    
+    while warehouse.is_position_occupied(x, y):
+        x = np.random.randint(0, warehouse.width)
+        y = np.random.randint(0, warehouse.height)
+    
+    robot_type = np.random.choice(robot_types)
+    
+    if robot_type == 'QUADCOPTER':
+        return Quadcopter(x, y, warehouse)
+    elif robot_type == 'DIFFERENTIAL_DRIVE':
+        return DifferentialDrive(x, y, warehouse)
+    else:
+        return Humanoid(x, y, warehouse)
 
+
+ 
+def generate_random_goal(warehouse):
+    x = np.random.randint(0, warehouse.width)
+    y = np.random.randint(0, warehouse.height)
+    
+    while (x,y) in warehouse.get_goals():
+        x = np.random.randint(0, warehouse.width)
+        y = np.random.randint(0, warehouse.height)
+    
+    return x, y
 
 # create warehouse
-warehouse = Warehouse(10, 10)
+warehouse = Warehouse(5, 5)
 
-# create robots
-robot1 = Robot(1, 4, 'DIFFERENTIAL_DRIVE', warehouse)
+# randomly create 10 robots across the warehouse
+robots = []
+for i in range(10):
+    robot = generate_random_robot(warehouse)
+    warehouse.add_robot(robot)
+    robots.append(robot)
 
-robot2 = Robot(4, 1, 'QUADCOPTER', warehouse)
 
-robot4 = Robot(3, 1, 'DIFFERENTIAL_DRIVE', warehouse)
-
-robot3 = Robot(1, 3, 'HUMANOID', warehouse)
-
-robot5 = Robot(1, 6, 'HUMANOID', warehouse)
-
-robot6 = Robot(9, 9, 'HUMANOID', warehouse)
-
-# add robots to warehouse
-warehouse.add_robot(robot1)
-warehouse.add_robot(robot2)
-warehouse.add_robot(robot3)
-warehouse.add_robot(robot4)
-warehouse.add_robot(robot5)
-warehouse.add_robot(robot6)
-
-# set goals for robots
-robot1.set_goal(9, 9)
-robot2.set_goal(4, 9)
-robot3.set_goal(9, 5)
-robot4.set_goal(9, 3)
-robot5.set_goal(7, 3)
-robot6.set_goal(1, 1)
-
-# plot warehouse
-#warehouse.plot_warehouse_with_goal_path()
+# randomly set goals for each robot
+for robot in robots:
+    x, y = generate_random_goal(warehouse)
+    robot.set_goal(x, y)
+ 
 
 
 # animate robots moving to their goals
 def animate(i):
     
+    if i == 0:
+        # pause the screen so we can see the initial state
+        time.sleep(.5)
+        
+    if i == 1000:
+        print('Animation stopped')
+    
     plt.cla()
 
-    robot1.move_towards_goal()
-    robot2.move_towards_goal()
-    robot3.move_towards_goal()
-    robot4.move_towards_goal()
-    robot5.move_towards_goal()
-    robot6.move_towards_goal()
+    for robot in warehouse.robots:
+        robot.move_towards_goal()
     
     warehouse.process_move_request()
     warehouse.plot_warehouse_with_goal_path()
     
- 
     if len(warehouse.robots) == 0:
         ani.event_source.stop()
         
 
     return ani
 
-ani = FuncAnimation(plt.gcf(), animate, frames=12, interval=1000)
+ani = FuncAnimation(plt.gcf(), animate, frames=30, interval=1000)
+
 plt.show()
 
 
