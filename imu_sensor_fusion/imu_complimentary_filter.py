@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# TODO - figure out if this is needed,  we integrate the gyro estimates in the filter
-#        starting from 0, hence do we need to transform to Euler rates?
+# Per Piazza question, this is not needed, we can simply integrate gyroscope data
 def body_rates_to_euler_rates(phi, theta, p,q,r):
     
     # Calculate the transformation matrix
@@ -79,13 +78,7 @@ euler_phi = 0
 euler_theta = 0
 
 for i in range(1, samples):
-    
-    # convert the gyroscope data to radians
-    gyro_x_rad = gyro_x[i] * gyro_deg_to_rad
-    gyro_y_rad = gyro_y[i] * gyro_deg_to_rad
-    gyro_z_rad = gyro_z[i] * gyro_deg_to_rad
-    
-  
+     
     # previous yaw, pitch, and roll values
     roll, pitch, yaw = euler_angles[i-1]
     
@@ -118,6 +111,7 @@ plt.subplot(3,1,1)
 plt.plot(time, euler_angles_deg[:,0], label='Roll')
 plt.title('Roll')
 plt.xlabel('Time (s)')
+plt.xlim([0, time[-1]])
 plt.ylabel('Angle (degrees)')
 plt.grid()
  
@@ -125,6 +119,7 @@ plt.subplot(3,1,2)
 plt.plot(time, euler_angles_deg[:,1], label='Pitch')
 plt.title('Pitch')
 plt.xlabel('Time (s)')
+plt.xlim([0, time[-1]])
 plt.ylabel('Angle (degrees)')
 plt.grid()
  
@@ -132,6 +127,7 @@ plt.subplot(3,1,3)
 plt.plot(time, euler_angles_deg[:,2], label='Yaw')
 plt.title('Yaw')
 plt.xlabel('Time (s)')
+plt.xlim([0, time[-1]])
 plt.ylabel('Angle (degrees)')
 plt.grid()
  
