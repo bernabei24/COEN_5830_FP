@@ -1,15 +1,28 @@
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib.patches import Rectangle
 import numpy as np
 from scipy.integrate import solve_ivp
-from scipy import signal
 import control as ct
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 
+"""
+  COEN 5830 - Intro to Robotics
+  Final Project: Inverted pendulum control
+  Student(s): Michael Bernabei, Ian Mcconachie                                                                       
+  Fall 2024
+  Instructor: Dr. Leopold Beuken
+                                                                                                                                                                
+  Program description:  Developes a controller for an inverted pendulum
+
+  Author(s): Michael Bernabei, Ian Mcconachie
+  Date: 11/13/2024
+
+"""
+
+# this builds the gain constant matrix K such that u = -K*x
 def LQR(k_pos,k_theta,cost):
     
-    model_deviation = 0.0
+    model_deviation = 0.05
     M = 1 + model_deviation; 
     m = 0.5 - model_deviation; 
     l = 0.4 + model_deviation; 
@@ -28,6 +41,7 @@ def LQR(k_pos,k_theta,cost):
     K, S, E = ct.lqr(A, B, Q, R)
     return K
 
+# This function takes the state and time and gain matrix and outputs the force applied 
 def state_controller(t,X,K): 
    
     F_limit = 40.0 #N
@@ -49,6 +63,7 @@ def state_controller(t,X,K):
     
     return F
 
+# this is the implementation of the non-linear equations of motion 
 def EOM(t, X ):
     # X = [ X , X' , Theta , Theta']^T
     
@@ -73,11 +88,13 @@ def EOM(t, X ):
     
     return [dX1, dX1_dot , dX2 , dX2_dot]
 
+# This function solves the EOM 
 def simulate_sys_with_control(EOM,t_span,X0):
  
     solution = solve_ivp( EOM, (0,t_span) , X0 , method='RK45',max_step=0.02)
     return solution
  
+# this function plots the response of the states over time for the pendulum
 def plot_info(solution):
     
     t = solve.t
@@ -87,40 +104,52 @@ def plot_info(solution):
     dTheta =  solve.y[3]
     X = np.array([x,dx,theta,dTheta]).T
 
+    t_set = np.linspace(0, 6.5, 1000)
+    theta_set = np.zeros(len(t_set))
+    pos_set = np.where((t_set > 1.5) & (t_set <= 4), 0, -1)
+    
     n = len(solve.y[0])
     F = np.zeros(n)
     for i in range(n):
         F[i] = state_controller(t[i],X[i],K)
     
-    
     plt.figure(figsize=(12,10))
 
     plt.subplot(311)
-    plt.plot(t,F,'m',lw=2)
-    plt.legend([r'$F$'],loc=1)
+    plt.title('LQR Feedback Controller State Response')
+    plt.plot(t,F,'m',lw=2, label='Applied Force ( F )')
+    plt.legend(loc=1)
     plt.ylabel('Force (N)')
     plt.xlim(t[0],t[-1])
     plt.grid(True)
 
-    
     plt.subplot(312)
-    plt.plot(t,x,'r',lw=2)
-    plt.legend([r'$x$'],loc=1)
+    plt.plot(t_set,pos_set , 'g--',lw=1.5, label='Set Point')
+    plt.plot(t,x,'r',lw=2, label='Cart Position ( x )')
+    plt.legend(loc=1)
     plt.ylabel('Position (m)')
     plt.xlim(t[0],t[-1])
     plt.grid(True)
 
     plt.subplot(313)
-    plt.plot(t,-theta*180/np.pi,'y',lw=2)
-    plt.legend([r'$\theta$',r'$q$'],loc=1)
+    plt.plot(t_set, theta_set, 'g--',lw=1.5, label='Set Point')
+    plt.plot(t,-theta*180/np.pi,'b',lw=2 , label='Rod Angle ( θ )')
+    plt.legend(loc=1)
     plt.ylabel('Angle (°)')
     plt.xlabel('Time (s)')
     plt.xlim(t[0],t[-1])
     plt.grid(True)
 
-def plot_animation(solution):
-    
-    plt.style.use('dark_background')
+# This function plots the animation of the pendulum
+def plot_animation(solution, dark): 
+    if dark:
+        col_background_1 = 'w'
+        col_background_2 = 'gray'
+        plt.style.use('dark_background')
+        
+    else:
+        col_background_1 = 'k'
+        col_background_2 = 'k'
     
     t = solve.t
     x = solve.y[0]
@@ -171,21 +200,21 @@ def plot_animation(solution):
     ax.set_xlabel('position ( m )')
     ax.get_yaxis().set_visible(False)
 
-    crane_rail, = ax.plot([-(bound_neg+.5),bound_pos + 0.5],[-0.2,-0.2],'w-',lw=4)
-    start, = ax.plot([-1,-1],[-1.5,1.5],'w:',lw=1.5)
-    objective, = ax.plot([0,0],[-0.5,1.5],'w:',lw=1.5)
+    crane_rail, = ax.plot([-(bound_neg+.5),bound_pos + 0.5],[-0.2,-0.2], color= col_background_1 ,lw=4)
+    start, = ax.plot([-1,-1],[-1.5,1.5],':', color= col_background_1,lw=1.5)
+    objective, = ax.plot([0,0],[-0.5,1.5],':', color= col_background_1,lw=1.5)
 
     mass1, = ax.plot([],[],linestyle='None',marker='s',\
-                    markersize=44,markeredgecolor='gray',\
+                    markersize=44,markeredgecolor=col_background_2,\
                     color=col,markeredgewidth=2)
 
     mass2, = ax.plot([],[],linestyle='None',marker='o',\
-                    markersize=20,markeredgecolor='gray',\
+                    markersize=20,markeredgecolor=col_background_2,\
                     color=col,markeredgewidth=2)
 
     line, = ax.plot([],[],'o-',color=col,lw=4,\
-                    markersize=6,markeredgecolor='gray',\
-                    markerfacecolor='gray')
+                    markersize=6,markeredgecolor=col_background_2,\
+                    markerfacecolor=col_background_2)
     
     F_arrow, = ax.plot([],[],color='r',lw=2,marker='D',markersize=6,markeredgecolor='r',markerfacecolor='k')
 
@@ -198,16 +227,23 @@ def plot_animation(solution):
     
     plt.show()
 
+
+#### This sets up the environment 
+
 ##### time span and initial conditions
 # X = [ X , X' , Theta , Theta']^T
 t_span = 6.5 # sec
-X0 = [-1 , 0 , 0*np.pi/180 , 3] 
+X0 = [-1 , 0 , 20*np.pi/180 , 0] 
 
+# gains to balance the system response 
 position_gain = 15
 angle_gain = 12
 action_gain = 0.1
 
+dark_theme = False
+
 K = LQR( position_gain , angle_gain , action_gain ) # solve for the control gain using LQR
+# print(K)
 solve = simulate_sys_with_control(EOM,t_span,X0)
 p1 = plot_info(solve)
-p2 = plot_animation(solve)
+p2 = plot_animation(solve,dark_theme)
